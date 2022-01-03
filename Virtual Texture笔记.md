@@ -5,13 +5,7 @@ https://zhuanlan.zhihu.com/p/143709152 游戏引擎随笔 0x14：UE4 Runtime Vir
 https://www.zhihu.com/question/453803452/answer/1828213316 Virtual Texture的意义是什么？  
 https://zhuanlan.zhihu.com/p/85417843基于Unity3D引擎的大地形加载研究  
 
-
-
-- [Paste Your Document In Here](#paste-your-document-in-here)
-  * [And a table of contents](#and-a-table-of-contents)
-  * [On the right](#on-the-right)
-
-<small><i><a href='http://ecotrust-canada.github.io/markdown-toc/'>Table of contents generated with markdown-toc</a></i></small>
+https://zhuanlan.zhihu.com/p/148283184 Virtual Texture in Modern Graphics API
 
 ### Virtual Texture 
 纹理映射用于将表面细节添加到几何图元中，能更有效的管理和渲染表面细节。
@@ -20,8 +14,10 @@ https://zhuanlan.zhihu.com/p/85417843基于Unity3D引擎的大地形加载研究
 由于要进行对象分析，将纹理流送网格化，以及从收集到的纹理网格集（Physical Texture）中进行采样，在仅流送方面虚拟纹理会比传统纹理的消耗更大一些，根据屏幕内容的变化速率不同，该消耗可能在1~3ms之间。  
 消耗总是相对的，虚拟纹理能够在某些时候带来远超流送消耗的效率收益，比如将超大范围的多层地表纹理烘焙为运行时虚拟纹理，将每帧都要执行的复杂层计算转变为对纹理的直接采样，能够节省大量性能消耗。
 
-
 Virtual Texture的意义是什么？  
+
+之前看的Unity中使用RVT的工程都是在CPU端建立索引的，这其实完全没有发挥出VT的优势，最大最明显的点在于Texture Streaming可以从原来的纯CPU运算交给GPU了，这是因为所有Shader都可以使用统一的虚拟坐标，这就意味着可以直接由屏幕信息反推出当前用到的贴图，这是传统的渲染管线难以比拟的地方，根据后续的学习了解到索引的建立是可以直接建立到GPU中，通过Multi-Indirect Draw配合Compute Shader完全可以实现。
+
 假如我们的地表纹理是通过多种纹理混合而来的化，我们需要一张叫做splat map的图来记录我们每个纹理的权重，一般splat map有RGBA四个权重，可以存储4个混合纹理，如果超过的化就需要更多的splat map 记录，这样在渲染一块地表时会采样许多次，有很大的开销，而Virtual Texture可以允许所有表面以单批几何绘制。不同的表面可以使用不同的
 部分相同的虚拟纹理，并且不需要每个表面纹理选择。  
 
