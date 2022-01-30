@@ -4,6 +4,59 @@
 从实体的组装方式来说，unity讲究的是全员皆是gameobject，就像是一个个node来组装实体，每一个node都可以取挂在component，UE4讲究的是使用Actor将实体封装起来，组装的坐标关系使用secenecomponent表示，并不使用node节点表示，归根结底就是Unity允许将逻辑细化到每一个node上面，而UE4提倡我们在actor中构建逻辑，并不提倡逻辑上的细分，避免了层级过深，层层转发带来的效率降低。  
 关键的不同是在于你是怎么划分要操作的实体的粒度的
 
+在unity的程序设计中我们都是依赖于mono来进行生命周期，GC的管理，而mono又需要依赖GameObject挂载在场景总才可以生效，好处就是在unity的代码逻辑中你会写的十分轻松便捷，有什么功能需要实现，就地加一个脚本，变量的引用也可以才场景中快速的绑定，但当在没有约束的情况下写了太多的代码，就会管理越来越困难，耦合越来越多，逻辑也会十分分散，一般在unity中开发时，需要我们自己管理限制自己的代码，避免造成上述情况，ue为了避免这种情况，采取了和unity不同的脚本管理逻辑，就是使用提供的框架，避免逻辑混乱和分散，提倡在actor中构建逻辑，其实总结下来，Actor就像一个Component的容器，这个实体需要的组件都放到Actor里，将scencecomponent单独抽离出来，组织层级关系，并不是想unity中同一个实体需要的component可能存在于不同层级下的GameObject中，避免了频繁转发和混乱，当然ue中也有actorcomponent这样类似GameObject的结构。
+
+
+
+##### UObject
+
+UObject是我们一个最基础的类，不管是我们各种资源，还是场景中的AActor，都是继承我们的UObject实现的，所以从Broswer中加载对象时，经常会看到用UObject来保存我们加载好的指针，然后再去实例。
+
+![](https://pic3.zhimg.com/80/v2-750c05a282e8784c3af5815a481d549e_720w.png)
+
+藉着UObject提供的元数据、反射生成、GC垃圾回收、序列化、编辑器可见，Class Default Object等，UE可以构建一个Object运行的世界。（后续会有一个大长篇深挖UObject）
+
+
+
+##### AActor
+
+![](https://pic3.zhimg.com/80/v2-9348f6bdadbe382a505aff9be7d5d99e_720w.png)
+
+脱胎自Object的Actor也多了一些本事：Replication（网络复制）,Spawn（生生死死），Tick(有了心跳)。
+
+之前提到Actor的Location是单独抽离到sceneComponent的，这是考虑到有很多Actor是不需要位置信息的，为了避免逆矩阵的内存占用，所以将sceneComponent封装了起来，如果spawn出一个AActor的话，会发现是没有sceneComponent的，提供给我们的GetActorLoaction的API也是通过先获取RootCommponent来Get  Location的  
+
+同理，Actor能接收处理Input事件的能力，其实也是转发到内部的UInputComponent* InputComponent;同样也提供了便利方法。
+
+
+
+##### Component
+
+Component是类似unity组件模式的应用，UActorComponent也是基础于UObject的一个子类，这意味着其实Component也是有UObject的那些通用功能的。所以Component也是有反射，GC回收等功能的。
+
+TSet<UActorComponent*> OwnedComponents 保存着这个Actor所拥有的所有Component,一般其中会有一个SceneComponent作为RootComponent。
+
+以下是SceneComponent的周嵌套关系
+
+
+
+![](https://pic1.zhimg.com/80/v2-91234c7d5bc32dd04c7221ac9dcc56d0_720w.jpg)
+
+从上图可以看到，只有ScenceComponent可以进行嵌套，在UE的观念里，好像只有带Transform的SceneComponent才有资格被嵌套，好像Component的互相嵌套必须和3D里的transform父子对应起来。所以想AIComponent，inputComponent这样没有从sceneComponent继承，也不需要位置信息的类，都是无法嵌套的，这样设计的原因还是因为“不为你不需要的东西付出代价”的思维，因为他们不需要位置信息，所以不去使用一个逆矩阵存储Transform，因为没有Transform和位置的必要，所以也不必提供嵌套功能。
+
+
+
+##### ChildActorComponent
+
+再Actor中除了存储Component的两个数组之外还有一个TArray<AActor*> Children字段，就是保存actor的父子关系的，那么父子关系有什么用呢？
+
+那就是提供组件之外的，空间内的坐标绑定关系，比如武器，我们可能持有多种武器，但不可能将每种都作为Charactor的组件加入进去，就需要使用childActorComponent，再我们设计好武器后，再将他绑定到需要的Charactor或者Enemy手上。
+
+除了基本从SceneComponent继承的诸如StaticMesh的类之外，ChildActorComponent也需要我们的嵌套关系，他给我们提供了在Actor下再添加Actor的功能，
+
+
+
+
 #### （二）Level和World
 简单来说就是在常见的Level上，添加了一个World，World就像是一个世界的规则，在游戏世界里就是游戏的规则，在Level上添加了一个逻辑层面。
 
@@ -28,10 +81,11 @@ WorldSetting 是存在Actors[0]的位置，这是因为Actors们的排序依据�
 ##### WorldContext
 当我们的游戏世界够庞大后，我们的就可以穿越到另一个世界，所以world并不是唯一的，而UE用来管理和跟踪这些World的工具就是WorldContext：  
 
-
 FWorldContext保存着ThisCurrentWorld来指向当前的World。而当需要从一个World切换到另一个World的时候（比如说当点击播放时，就是从Preview切换到PIE），FWorldContext就用来保存切换过程信息和目标World上下文信息。所以一般在切换的时候，比如OpenLevel，也都会需要传FWorldContext的参数。一般就来说，对于独立运行的游戏，WorldContext只有唯一个。而对于编辑器模式，则是一个WorldContext给编辑器，一个WorldContext给PIE（Play In Editor）的World。一般来说我们不需要直接操作到这个类，引擎内部已经处理好各种World的协作。
 不仅如此，同时FWorldContext还保存着World里Level切换的上下文：  
 粗略的流程是UE在OpenLevel的时候， 先设置当前World的Context上的TravelURL，然后在UEngine::TickWorldTravel的时候判断TravelURL非空来真正执行Level的切换。具体的Level切换详细流程比较复杂，目前先从大局上理解整体结构。总而言之，WorldContext既负责World之间切换的上下文，也负责Level之间切换的操作信息。  
+
+##### Tank项目中，之所以Level切换时，之所以数据会被丢失，是因为OpenLevel的逻辑是关闭当前word，重新生成一个world再载入Level，如果使用LoadStreamLevel的时候，就只是在当前的World中载入对象了，所以其实就没有这个限制了。
 
 ##### GameInstance
 那么这些WorldContexts又是保存在哪里的呢？追根溯源：
@@ -42,16 +96,16 @@ GameInstance里会保存着当前的WorldConext和其他整个游戏的信息。
 
 
 
-##Actor Replication
-Actor Replication:
-1. 服务端生成，客户端跟着生成（服务端又 一个replicate对象）
-2. 当前Actor的所有属性复制，组件复制，RPC的总开关
+##### GamePlayStatics
 
-Property Replication:
-1. 属性前增加UPROPERTY(Replicated)
-2. .cpp文件中，在  GetLifetimeReplicatedProps函数中添加DOREPLIFETIME(类名称，变量名)
+既然我们在引擎内部C++层次已经有了访问World操作Level的能力，那么在暴露出的蓝图系统里，UE为了我们的使用方便，也在Engine层次为我们提供了便利操作蓝图函数库。
 
-Component Replication:
+```text
+UCLASS ()
+class UGameplayStatics : public UBlueprintFunctionLibrary 
+```
+
+我们在蓝图里见到的GetPlayerController、SpawActor和OpenLevel等都是来至于这个类的接口。这个类比较简单，相当于一个C++的静态类，只为蓝图暴露提供了一些静态方法。在想借鉴或者是查询某个功能的实现时，此处往往会是一个入口。
 
 
 #### （四）Pawn
@@ -78,6 +132,7 @@ AController是继承自AActor的一个子类
 
 首先可以设想先我们对于一个玩家控制器有哪些要求
 能够和Pawn对应起来，理想情况下，极端的灵活性应该是多对多。
+
 1. 我希望我能同时控制多个Pawn，当然，一个Pawn也可以被多个我的兄弟姐妹们一起控制。想想那些RTS游戏和多人协作游戏，你应该能明白我有时候需要协调调度Pawn们走个方阵，有时候也得多人合作才能操纵得了一台机甲。当然越灵活也往往意味着越容易出错，但总之我们需要一个和Pawn关联的机制。
 2. 多个控制实例，在需要的时候，我不介意可以克隆出多个我来，比如一段逻辑A，我们希望可以有多个实例在同时运行。就像行为树一样，可以有多个运行实例，彼此算法一样，但互不干扰。
 3. 可挂载释放，我可以选择当前控制PawnA，也可以选择之后把它释放掉不再控制让她自生自灭，然后再另寻新欢控制PawnB，我必须拥有灵活的运行时增删控制Pawn的能力。
@@ -94,6 +149,11 @@ AController是继承自AActor的一个子类
 14. 可同步，这年头，要是不能适应网络环境，可真的没有竞争力。这个Object，Actor基本都有的能力，我当然也得有。位于服务器或客户端上的我也必须有能力在其他客户端上影分身，让他们都跟随我的步伐一致行动。
 
 根据这些要求，我们选择从Actor继承构造了我们的controller  
+
+![](https://pic3.zhimg.com/80/v2-b4e0dd15956ccb819fca93e73d1b8ed2_1440w.jpg)
+
+![](https://pic1.zhimg.com/v2-c0cd2e5121f63c37615f78476e2a425c_r.jpg)
+
 **思考：Controller和Pawn必须1:1吗？**  
 **思考：为何Controller不能像Actor层级嵌套？**  
 **思考：Controller的位置有什么意义？**  
