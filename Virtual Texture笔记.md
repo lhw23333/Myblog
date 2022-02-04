@@ -73,7 +73,28 @@ Virtaual Texture相对减少了我们的内存压力，但是提高了我们的I
 总结上面两个基于映射纹理的方案，要么是纹理需要很大的存储，要么是需要多次查询。如果从映射纹理比较大的角度考虑优化的话，可以考虑适当减少每个像素的大小
 
 #### Texture Filtering（纹理过滤）
+
+https://learnopengl-cn.github.io/01%20Getting%20started/06%20Textures/    LearnOpenGL
+
 由于虚拟纹理并没有完整加载，所以各种采样过滤在page的边界会有问题，我们需要自己设计解决这些问题的方法，适当的使用软实现的采样。
+
+之所以需要纹理过滤是因为纹理坐标的设置并不依赖纹理像素，所以我们在根据纹理坐标进行采样的时候就需要进行过滤处理
+
+GL_NEAREST（也叫邻近过滤，Nearest Neighbor Filtering）是OpenGL默认的纹理过滤方式。当设置为GL_NEAREST的时候，OpenGL会选择中心点最接近纹理坐标的那个像素。下图中你可以看到四个像素，加号代表纹理坐标。左上角那个纹理像素的中心距离纹理坐标最近，所以它会被选择为样本颜色：
+
+![](https://learnopengl-cn.github.io/img/01/06/filter_nearest.png)
+
+GL_LINEAR（也叫线性过滤，(Bi)linear Filtering）它会基于纹理坐标附近的纹理像素，计算出一个插值，近似出这些纹理像素之间的颜色。一个纹理像素的中心距离纹理坐标越近，那么这个纹理像素的颜色对最终的样本颜色的贡献越大。下图中你可以看到返回的颜色是邻近像素的混合色：
+
+![](https://learnopengl-cn.github.io/img/01/06/filter_linear.png)
+
+那么这两种纹理过滤方式有怎样的视觉效果呢？让我们看看在一个很大的物体上应用一张低分辨率的纹理会发生什么吧（纹理被放大了，每个纹理像素都能看到）：
+
+![](https://learnopengl-cn.github.io/img/01/06/texture_filtering.png)
+
+GL_NEAREST产生了颗粒状的图案，我们能够清晰看到组成纹理的像素，而GL_LINEAR能够产生更平滑的图案，很难看出单个的纹理像素。GL_LINEAR可以产生更真实的输出
+
+当进行放大(Magnify)和缩小(Minify)操作的时候可以设置纹理过滤的选项，比如你可以在纹理被缩小的时候使用邻近过滤，被放大时使用线性过滤。
 
 #### Feedback Rendering
 feedback Renderer是通过在渲染时，求偏导，得到相邻像素UV的插值的方式来计算mipmap Level的等级，再由cpu从GPU中回读获取
@@ -89,7 +110,10 @@ feedback Renderer是通过在渲染时，求偏导，得到相邻像素UV的插�
 
 
 
+
+
 ### SVT
+
 - 按需将纹素数据缓存于内存中。
 - 在硬盘中烘焙和加载纹素数据。
 - 非常适用于生成时间较长的纹理数据，如光照贴图或美术师创建的大型细节纹理。  
@@ -112,5 +136,21 @@ Runtime Virtual Texture
 - 优化：SVT io开销 RVT 运行时采样开销
 - RVT在中远距离使用SVT，或者去掉远处mip
 - 减少数量和被拍物体复杂度 哪个层级mip不会被拍
+
+
+
+# 到底是时间换空间还是空间换时间
+
+时间换空间的依据：VT因为内存不会常驻，所以在纹理加载上会有更多的开销，纹理内存减少。
+
+空间换时间的依据：26张贴图合并成2张render target，减少需要采样的贴图
+
+以RVT为例子，常提及空间换时间，因为在PBR大量使用的现在，一层地形图层采样的纹理数变多
+
+- 8层在十年前你可以认为是8张颜色贴图加两张控制图的混合，十张，好像是有点多，但是现在是PBR的时代,以Unity的Terrain材质为例8层意味着
+
+（1 Albeto + 1 Normal + 1 Detail[AO R + Metal G + Roughness A]）* 8 + 2 Control Map = **26次贴图采样**
+
+即每个像素，每帧都会有26次贴图采样。这就是为什么Unity官方推荐移动平台不要超过4层的原因。你以为4层就没事了吗？这个标准只能保证中端设备能跑30帧且烫不烫完全不care。
 
 
