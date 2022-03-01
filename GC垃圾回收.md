@@ -1,5 +1,25 @@
-[TOC]
-https://zhuanlan.zhihu.com/p/38799766
+
+<!-- TOC -->
+
+- [垃圾回收机制的作用](#垃圾回收机制的作用)
+- [什么是GC](#什么是gc)
+    - [引用计数算法](#引用计数算法)
+    - [Mark-Compact 标记压缩算法](#mark-compact-标记压缩算法)
+    - [Generational 分代算法](#generational-分代算法)
+    - [增量式GC](#增量式gc)
+    - [Finalization Queue和Freachable Queue](#finalization-queue和freachable-queue)
+    - [托管资源](#托管资源)
+    - [GC.Collect() 方法](#gccollect-方法)
+    - [GC注意事项](#gc注意事项)
+    - [如何判断为垃圾可回收](#如何判断为垃圾可回收)
+        - [引用计数算法](#引用计数算法-1)
+    - [循环引用](#循环引用)
+        - [GC Roots（可达性分析）](#gc-roots可达性分析)
+    - [垃圾回收触发条件](#垃圾回收触发条件)
+    - [如何提高GC效率来提高游戏的性能？](#如何提高gc效率来提高游戏的性能)
+
+<!-- /TOC -->
+
 #### 垃圾回收机制的作用
 - 提高了软件开发的抽象度；
 - 程序员可以将精力集中在实际的问题上而不用分心来管理内存的问题；
