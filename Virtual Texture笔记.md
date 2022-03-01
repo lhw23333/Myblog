@@ -1,4 +1,3 @@
-[TOC]
 https://zhuanlan.zhihu.com/p/138484024  浅谈Virtual Texture  
 https://www.bilibili.com/video/BV1KK411L7Rg  irtual Texture（虚拟纹理）的理解和应用 | Epic 李文磊  
 https://zhuanlan.zhihu.com/p/143709152 游戏引擎随笔 0x14：UE4 Runtime Virtual Texture 实现机制及源码解析
@@ -6,6 +5,25 @@ https://www.zhihu.com/question/453803452/answer/1828213316 Virtual Texture的意
 https://zhuanlan.zhihu.com/p/85417843基于Unity3D引擎的大地形加载研究  
 
 https://zhuanlan.zhihu.com/p/148283184 Virtual Texture in Modern Graphics API
+
+<!-- TOC -->
+
+- [Virtual Texture](#virtual-texture)
+    - [VT数据准备阶段](#vt数据准备阶段)
+    - [VT数据采样阶段](#vt数据采样阶段)
+    - [地址映射](#地址映射)
+        - [四叉树映射](#四叉树映射)
+        - [单像素对应虚纹理的一个page的映射](#单像素对应虚纹理的一个page的映射)
+        - [双纹理映射](#双纹理映射)
+        - [page和mip level映射](#page和mip-level映射)
+    - [Texture Filtering（纹理过滤）](#texture-filtering纹理过滤)
+    - [Feedback Rendering](#feedback-rendering)
+    - [Texture Poping](#texture-poping)
+- [SVT](#svt)
+- [RVT](#rvt)
+- [到底是时间换空间还是空间换时间](#到底是时间换空间还是空间换时间)
+
+<!-- /TOC -->
 
 ### Virtual Texture 
 纹理映射用于将表面细节添加到几何图元中，能更有效的管理和渲染表面细节。
@@ -139,7 +157,7 @@ Runtime Virtual Texture
 
 
 
-# 到底是时间换空间还是空间换时间
+### 到底是时间换空间还是空间换时间
 
 时间换空间的依据：VT因为内存不会常驻，所以在纹理加载上会有更多的开销，纹理内存减少。
 
@@ -152,8 +170,6 @@ Runtime Virtual Texture
 （1 Albeto + 1 Normal + 1 Detail[AO R + Metal G + Roughness A]）* 8 + 2 Control Map = **26次贴图采样**
 
 即每个像素，每帧都会有26次贴图采样。这就是为什么Unity官方推荐移动平台不要超过4层的原因。你以为4层就没事了吗？这个标准只能保证中端设备能跑30帧且烫不烫完全不care。
-
-
 
 解答：SVT时间换空间，RVT空间换时间
 

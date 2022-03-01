@@ -1,5 +1,26 @@
-[TOC]
-## 架构
+<!-- TOC -->
+
+- [（一）Actor和Component](#一actor和component)
+    - [UObject](#uobject)
+    - [AActor](#aactor)
+    - [Component](#component)
+    - [ChildActorComponent](#childactorcomponent)
+- [（二）Level和World](#二level和world)
+    - [Level](#level)
+    - [world](#world)
+- [（三）WorldContext，GameInstance，Engine](#三worldcontextgameinstanceengine)
+    - [WorldContext](#worldcontext)
+    - [Tank项目中，之所以Level切换时，之所以数据会被丢失，是因为OpenLevel的逻辑是关闭当前word，重新生成一个world再载入Level，如果使用LoadStreamLevel的时候，就只是在当前的World中载入对象了，所以其实就没有这个限制了。](#tank项目中之所以level切换时之所以数据会被丢失是因为openlevel的逻辑是关闭当前word重新生成一个world再载入level如果使用loadstreamlevel的时候就只是在当前的world中载入对象了所以其实就没有这个限制了)
+    - [GameInstance](#gameinstance)
+    - [GamePlayStatics](#gameplaystatics)
+- [（四）Pawn](#四pawn)
+- [（五）controller](#五controller)
+    - [MVC](#mvc)
+    - [AController](#acontroller)
+
+<!-- /TOC -->
+
+
 #### （一）Actor和Component
 从实体的组装方式来说，unity讲究的是全员皆是gameobject，就像是一个个node来组装实体，每一个node都可以取挂在component，UE4讲究的是使用Actor将实体封装起来，组装的坐标关系使用secenecomponent表示，并不使用node节点表示，归根结底就是Unity允许将逻辑细化到每一个node上面，而UE4提倡我们在actor中构建逻辑，并不提倡逻辑上的细分，避免了层级过深，层层转发带来的效率降低。  
 关键的不同是在于你是怎么划分要操作的实体的粒度的
